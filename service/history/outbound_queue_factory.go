@@ -29,6 +29,7 @@ import (
 	"go.uber.org/fx"
 
 	"go.temporal.io/server/common/collection"
+	"go.temporal.io/server/common/dynamicconfig"
 	"go.temporal.io/server/common/log"
 	"go.temporal.io/server/common/log/tag"
 	"go.temporal.io/server/common/metrics"
@@ -48,19 +49,21 @@ type outboundQueueFactoryParams struct {
 	QueueFactoryBaseParams
 }
 
-// TODO: get actual limits from dynamic config.
 type groupLimiter struct {
 	key queues.StateMachineTaskTypeNamespaceIDAndDestination
+
+	bufferSize  dynamicconfig.IntPropertyFnWithDestinationFilter
+	concurrency dynamicconfig.IntPropertyFnWithDestinationFilter
 }
 
 var _ ctasks.DynamicWorkerPoolLimiter = (*groupLimiter)(nil)
 
-func (groupLimiter) BufferSize() int {
-	return 100
+func (l groupLimiter) BufferSize() int {
+	return l.bufferSize(l.key.NamespaceID, l.key.Destination)
 }
 
-func (groupLimiter) Concurrency() int {
-	return 100
+func (l groupLimiter) Concurrency() int {
+	return l.concurrency(l.key.NamespaceID, l.key.Destination)
 }
 
 type outboundQueueFactory struct {
@@ -127,7 +130,11 @@ func NewOutboundQueueFactory(params outboundQueueFactoryParams) QueueFactory {
 					SchedulerFactory: func(
 						key queues.StateMachineTaskTypeNamespaceIDAndDestination,
 					) ctasks.RunnableScheduler {
-						return ctasks.NewDynamicWorkerPoolScheduler(groupLimiter{key})
+						return ctasks.NewDynamicWorkerPoolScheduler(groupLimiter{
+							key:         key,
+							bufferSize:  params.Config.OutboundQueueGroupLimiterBufferSize,
+							concurrency: params.Config.OutboundQueueGroupLimiterConcurrency,
+						})
 					},
 				},
 			),
