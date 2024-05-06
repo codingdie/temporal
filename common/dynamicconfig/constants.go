@@ -1654,6 +1654,16 @@ If value less or equal to 0, will fall back to HistoryPersistenceNamespaceMaxQPS
 		4,
 		`OutboundQueueMaxReaderCount is the max number of readers in one multi-cursor outbound queue`,
 	)
+	OutboundQueueCircuitBreakerSettings = NewDestinationMapSetting(
+		"history.outboundQueue.circuitBreakerSettings",
+		map[string]any{},
+		`OutboundQueueCircuitBreakerSettings is the settings of the circuit breaker.
+Accepted config keys (see gobreaker reference for more details):
+- MaxRequests: maximum number of requests allowed to pass through when it is half-open (default 1).
+- Interval (seconds): cyclic period in closed state to clear the internal counts;
+  if Interval is 0, then it never clears the internal counts (default 0).
+- Timeout (seconds): period of open state before changing to half-open state (default 60).`,
+	)
 
 	VisibilityTaskBatchSize = NewGlobalIntSetting(
 		"history.visibilityTaskBatchSize",

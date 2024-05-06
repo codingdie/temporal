@@ -25,9 +25,9 @@ package history
 import (
 	"fmt"
 
-	"github.com/sony/gobreaker"
 	"go.uber.org/fx"
 
+	"go.temporal.io/server/common/circuitbreaker"
 	"go.temporal.io/server/common/collection"
 	"go.temporal.io/server/common/log"
 	"go.temporal.io/server/common/log/tag"
@@ -79,19 +79,22 @@ func NewOutboundQueueFactory(params outboundQueueFactoryParams) QueueFactory {
 			return quotas.NewDefaultOutgoingRateLimiter(func() float64 { return 100.0 })
 		},
 	)
+
+	circuitBreakerSettings := params.Config.OutboundQueueCircuitBreakerSettings
 	circuitBreakerPool := collection.NewOnceMap(
-		func(key queues.StateMachineTaskTypeNamespaceIDAndDestination) *gobreaker.TwoStepCircuitBreaker {
-			// TODO: get circuit breaker settings from dynamic config.
-			return gobreaker.NewTwoStepCircuitBreaker(
-				gobreaker.Settings{
-					Name: fmt.Sprintf(
-						"circuit_breaker:%d.%s.%s",
-						key.StateMachineTaskType,
-						key.NamespaceID,
-						key.Destination,
-					),
+		func(
+			key queues.StateMachineTaskTypeNamespaceIDAndDestination,
+		) circuitbreaker.TwoStepCircuitBreaker {
+			cb := circuitbreaker.NewTwoStepCircuitBreakerWithDynamicSettings(
+				func() map[string]any {
+					return circuitBreakerSettings(key.NamespaceID, key.Destination)
 				},
 			)
+			return cb.WithName(fmt.Sprintf(
+				"circuit_breaker:%s:%s",
+				key.NamespaceID,
+				key.Destination,
+			))
 		},
 	)
 	grouper := queues.GrouperStateMachineNamespaceIDAndDestination{}
@@ -120,7 +123,13 @@ func NewOutboundQueueFactory(params outboundQueueFactoryParams) QueueFactory {
 						return ctasks.RateLimitedTaskRunnable{
 							Limiter: rateLimiterPool.Get(key),
 							Runnable: ctasks.RunnableTask{
-								Task: queues.NewCircuitBreakerExecutable(e, circuitBreakerPool.Get(key)),
+								Task: queues.NewCircuitBreakerExecutable(
+									e,
+									circuitBreakerPool.Get(queues.StateMachineTaskTypeNamespaceIDAndDestination{
+										NamespaceID: key.NamespaceID,
+										Destination: key.Destination,
+									}),
+								),
 							},
 						}
 					},
