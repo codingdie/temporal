@@ -74,9 +74,10 @@ type outboundQueueFactory struct {
 
 func NewOutboundQueueFactory(params outboundQueueFactoryParams) QueueFactory {
 	rateLimiterPool := collection.NewOnceMap(
-		func(queues.StateMachineTaskTypeNamespaceIDAndDestination) quotas.RateLimiter {
-			// TODO: get this value from dynamic config.
-			return quotas.NewDefaultOutgoingRateLimiter(func() float64 { return 100.0 })
+		func(key queues.StateMachineTaskTypeNamespaceIDAndDestination) quotas.RateLimiter {
+			return quotas.NewDefaultOutgoingRateLimiter(func() float64 {
+				return params.Config.OutboundQueueHostSchedulerMaxTaskRPS(key.NamespaceID, key.Destination)
+			})
 		},
 	)
 	circuitBreakerPool := collection.NewOnceMap(
@@ -118,7 +119,10 @@ func NewOutboundQueueFactory(params outboundQueueFactoryParams) QueueFactory {
 					RunnableFactory: func(e queues.Executable) ctasks.Runnable {
 						key := grouper.KeyTyped(e.GetTask())
 						return ctasks.RateLimitedTaskRunnable{
-							Limiter: rateLimiterPool.Get(key),
+							Limiter: rateLimiterPool.Get(queues.StateMachineTaskTypeNamespaceIDAndDestination{
+								NamespaceID: key.NamespaceID,
+								Destination: key.Destination,
+							}),
 							Runnable: ctasks.RunnableTask{
 								Task: queues.NewCircuitBreakerExecutable(e, circuitBreakerPool.Get(key)),
 							},

@@ -1654,6 +1654,11 @@ If value less or equal to 0, will fall back to HistoryPersistenceNamespaceMaxQPS
 		4,
 		`OutboundQueueMaxReaderCount is the max number of readers in one multi-cursor outbound queue`,
 	)
+	OutboundQueueHostSchedulerMaxTaskRPS = NewDestinationFloatSetting(
+		"history.outboundQueue.hostScheduler.maxTaskRPS",
+		100.0,
+		`OutboundQueueHostSchedulerMaxTaskRPS is the host scheduler max task RPS`,
+	)
 
 	VisibilityTaskBatchSize = NewGlobalIntSetting(
 		"history.visibilityTaskBatchSize",
