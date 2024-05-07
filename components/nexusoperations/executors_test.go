@@ -282,7 +282,7 @@ func TestProcessInvocationTask(t *testing.T) {
 			require.NoError(t, nexusoperations.RegisterExecutor(reg, nexusoperations.ActiveExecutorOptions{
 				Config: &nexusoperations.Config{
 					Enabled:        dynamicconfig.GetBoolPropertyFnFilteredByNamespace(true),
-					RequestTimeout: dynamicconfig.GetDurationPropertyFnFilteredByNamespace(tc.requestTimeout),
+					RequestTimeout: dynamicconfig.GetDurationPropertyFnFilteredByDestination(tc.requestTimeout),
 				},
 				CallbackTokenGenerator: commonnexus.NewCallbackTokenGenerator(),
 				NamespaceRegistry:      namespaceRegistry,
@@ -478,7 +478,7 @@ func TestProcessCancelationTask(t *testing.T) {
 			require.NoError(t, nexusoperations.RegisterExecutor(reg, nexusoperations.ActiveExecutorOptions{
 				Config: &nexusoperations.Config{
 					Enabled:        dynamicconfig.GetBoolPropertyFnFilteredByNamespace(true),
-					RequestTimeout: dynamicconfig.GetDurationPropertyFnFilteredByNamespace(tc.requestTimeout),
+					RequestTimeout: dynamicconfig.GetDurationPropertyFnFilteredByDestination(tc.requestTimeout),
 				},
 				NamespaceRegistry: namespaceRegistry,
 				ClientProvider: func(nid queues.NamespaceIDAndDestination, spec *nexuspb.OutgoingServiceSpec) (*nexus.Client, error) {
@@ -532,7 +532,7 @@ func TestProcessCancelationTask_OperationCompleted(t *testing.T) {
 	require.NoError(t, nexusoperations.RegisterExecutor(reg, nexusoperations.ActiveExecutorOptions{
 		Config: &nexusoperations.Config{
 			Enabled:        dynamicconfig.GetBoolPropertyFnFilteredByNamespace(true),
-			RequestTimeout: dynamicconfig.GetDurationPropertyFnFilteredByNamespace(time.Hour),
+			RequestTimeout: dynamicconfig.GetDurationPropertyFnFilteredByDestination(time.Hour),
 		},
 		NamespaceRegistry: namespaceRegistry,
 		ClientProvider: func(nid queues.NamespaceIDAndDestination, spec *nexuspb.OutgoingServiceSpec) (*nexus.Client, error) {

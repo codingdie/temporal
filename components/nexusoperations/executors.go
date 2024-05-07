@@ -131,11 +131,10 @@ func (e activeExecutor) executeInvocationTask(ctx context.Context, env hsm.Envir
 		return fmt.Errorf("%w: %w", queues.NewUnprocessableTaskError("failed to generate a callback token"), err)
 	}
 
-	ns, err := e.NamespaceRegistry.GetNamespaceByID(namespace.ID(ref.WorkflowKey.NamespaceID))
-	if err != nil {
-		return fmt.Errorf("failed to get namespace by ID: %w", err)
-	}
-	callCtx, cancel := context.WithTimeout(ctx, e.Config.RequestTimeout(ns.Name().String()))
+	callCtx, cancel := context.WithTimeout(
+		ctx,
+		e.Config.RequestTimeout(ref.WorkflowKey.GetNamespaceID(), task.Destination),
+	)
 	defer cancel()
 
 	rawResult, callErr := client.StartOperation(callCtx, args.operationName, args.payload, nexus.StartOperationOptions{
@@ -396,11 +395,10 @@ func (e activeExecutor) executeCancelationTask(ctx context.Context, env hsm.Envi
 		return fmt.Errorf("failed to get handle for operation: %w", err)
 	}
 
-	ns, err := e.NamespaceRegistry.GetNamespaceByID(namespace.ID(ref.WorkflowKey.NamespaceID))
-	if err != nil {
-		return fmt.Errorf("failed to get namespace by ID: %w", err)
-	}
-	callCtx, cancel := context.WithTimeout(ctx, e.Config.RequestTimeout(ns.Name().String()))
+	callCtx, cancel := context.WithTimeout(
+		ctx,
+		e.Config.RequestTimeout(ref.WorkflowKey.GetNamespaceID(), task.Destination),
+	)
 	defer cancel()
 
 	callErr := handle.Cancel(callCtx, nexus.CancelOperationOptions{})
