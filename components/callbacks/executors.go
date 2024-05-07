@@ -84,7 +84,10 @@ func (e activeExecutor) executeInvocationTask(
 		return err
 	}
 
-	callCtx, cancel := context.WithTimeout(ctx, e.config.RequestTimeout())
+	callCtx, cancel := context.WithTimeout(
+		ctx,
+		e.config.RequestTimeout(ref.WorkflowKey.GetNamespaceID(), task.Destination),
+	)
 	defer cancel()
 
 	request, err := nexus.NewCompletionHTTPRequest(callCtx, url, completion)
